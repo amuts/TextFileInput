@@ -20,6 +20,8 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="../TextFileInput_decoder_base.h" />
+		<Unit filename="../TextFileInput_decoder_utf8.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
