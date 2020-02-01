@@ -13,18 +13,21 @@ void test_tiFile()
 	try
 	{
 		std::clog<<"Opening file";
-		tiFile<char16_t,TextFileInput_decoder_utf8 > inputFile_1("TestInputs/simple_utf-8_file.txt") ;
+		tiFile<char16_t,TextFileInput_decoder_utf8 > inputFile_1("TestInputs/bible.txt") ;
 		std::clog<<std::endl;
 		std::clog<<std::boolalpha<<"Is opened : "<<inputFile_1.is_open()<<std::endl;
 		std::clog<<"Opened path:\""<<inputFile_1.get_path()<<"\""<<std::endl;
+		std::clog<<"Lines: "<<inputFile_1.total_lines()<<std::endl;
 
+
+		inputFile_1.seek_to_line(30362);
 		std::clog<< inputFile_1.getline().value();
 
 
 
 		while(auto currentChar=inputFile_1.get())
 		{
-            std::clog<<currentChar.value();
+          //  std::clog<<currentChar.value();
 		}
 
 
