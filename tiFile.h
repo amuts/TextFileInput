@@ -21,6 +21,23 @@ class tiFileCharacter
 	public:
 		tiFileCharacter():m_line(-1),m_column(-1),m_source_file(nullptr){}
 		tiFileCharacter(const CharType & in_character ,std::shared_ptr<std::string> in_path_str, const int64_t & in_line , const int64_t &in_column):m_character(in_character),m_source_file(in_path_str),m_line(in_line),m_column(in_column){}
+		tiFileCharacter(const tiFileCharacter & other)
+		{
+			m_source_file=other.m_source_file;
+			m_line=other.m_line;
+			m_column=other.m_column;
+			m_character=other.m_character;
+		}
+
+		tiFileCharacter& operator=(const tiFileCharacter & other)
+		{
+			m_source_file=other.m_source_file;
+			m_line=other.m_line;
+			m_column=other.m_column;
+			m_character=other.m_character;
+			return *this;
+		}
+
 		std::string source_file() const
 		{
 			if(nullptr==m_source_file) return "";
@@ -158,7 +175,7 @@ class tiFile
             return m_current_column;
 		}
 		/* -------------------- reading operations ------------------------*/
-		/** Reads next character from file(including end-of-line characters) , returns in tiFile<T>::tiFileCharacter form
+		/** Reads next character from file(including end-of-line characters) , returns in tiFileCharacter<T> form
 		 * \return if there is such character , returns unicode codepoint , if end of file was reached , or i/o error occurred, no value will be returned
 		 * \exception If trying to read when no file is opened std::logic_error is thrown
 		 * \exception If i/o error happens (failbit or badbit is set) nested std::ios_base::failure is thrown
@@ -295,6 +312,30 @@ class tiFile
 		}
 
 
+		/** get line , stored in std::basic_string<tiFileCharacter>
+		 * if end of line character is encountered, it is red from stream , but discarded and not written to string
+		 */
+		std::optional<std::vector<tiFileCharacter<CharType> > > getline()
+		{
+			std::vector<tiFileCharacter<CharType> > answ;
+			bool any_char_found=false;
+            while (auto current_char = get() )
+			{
+				any_char_found=true;
+				if((CharType)is_EOL(current_char.value()))
+				{
+					if(CR==current_char.value())
+					{
+						if(LF==peek()) get();
+					}
+					break;
+				}
+				answ.push_back(current_char.value());
+
+			}
+			if(any_char_found)return answ;
+			return {};
+		}
 		/* ---------------------- misc ------------------------------------*/
 		/** returns path of opened file*/
 		std::string get_path() const
@@ -340,10 +381,19 @@ class tiFile
 
 };
 template <typename CharType>
-std::ostream& operator<<(std::ostream& os, tiFileCharacter<CharType> & dt)
+std::ostream& operator<<(std::ostream& os, const tiFileCharacter<CharType> & dt)
 {
 	os<<dt.to_utf8_str();
     return os;
 }
+
+template <typename CharType>
+std::ostream& operator<<(std::ostream& os, const std::vector<tiFileCharacter<CharType> > & dt)
+{
+	for(auto c:dt)
+	os<<c.to_utf8_str();
+    return os;
+}
+
 
 #endif // TIFILE_H_INCLUDED

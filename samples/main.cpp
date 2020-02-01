@@ -18,6 +18,8 @@ void test_tiFile()
 		std::clog<<std::boolalpha<<"Is opened : "<<inputFile_1.is_open()<<std::endl;
 		std::clog<<"Opened path:\""<<inputFile_1.get_path()<<"\""<<std::endl;
 
+		std::clog<< inputFile_1.getline().value();
+
 
 
 		while(auto currentChar=inputFile_1.get())
