@@ -1,0 +1,4 @@
+This is an ASCII Text File
+With multiple lines
+Es pat nezinu ko šinī failā rakstīt.
+

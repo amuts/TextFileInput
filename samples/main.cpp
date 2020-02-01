@@ -4,90 +4,62 @@
 #include <queue>
 #include <string>
 #include "../TextFileInput_decoder_utf8.h"
+#include "../tiFile.h"
 using namespace std;
 
-void test_utf8_decoder()
+
+void test_tiFile()
 {
-	struct test_sample_struct
+	try
 	{
-		std::string test_title;
- 		std::queue<uint8_t> byte_sequence;
- 		uint32_t expected_result;
-        test_sample_struct(const char* in_title,std::vector<uint8_t> in_byte_seq, uint32_t in_expected_result)
-        {
-        	test_title=in_title;
-        	for(auto byte:in_byte_seq)
-				byte_sequence.push(byte);
-			expected_result=in_expected_result;
-        }
-	};
-	std::vector<test_sample_struct>  testSamples = {
-										test_sample_struct("Testing character 'A' ", {0x41},65),
-										test_sample_struct("Testing last single byte character ", {0x7F},127),
-										test_sample_struct("Testing first two byte character ", {0xC2,0x80},128),
-										test_sample_struct("Testing last two byte character ", {0xDF,0xBF},2047),
-										test_sample_struct("Testing first three byte character ", {0xE0,0xA0,0x80},2048),
-										test_sample_struct("Testing last three byte character ", {0xEF,0xBF,0xBF},65535),
-										test_sample_struct("Testing first four byte character ", {0xF0,0x90,0x80,0x80},65536)
-									};
+		std::clog<<"Opening file";
+		tiFile<char16_t,TextFileInput_decoder_utf8 > inputFile_1("TestInputs/simple_utf-8_file.txt") ;
+		std::clog<<std::endl;
+		std::clog<<std::boolalpha<<"Is opened : "<<inputFile_1.is_open()<<std::endl;
+		std::clog<<"Opened path:\""<<inputFile_1.get_path()<<"\""<<std::endl;
+
+        std::clog<<"Peeking character at location : Line "<<inputFile_1.get_current_line()<<"   column: "<<inputFile_1.get_current_column()<<std::endl;
+        auto peeked_char = inputFile_1.peek();
+        if(peeked_char.has_value())
+			std::clog<<" character = "<<(char)peeked_char.value();
+		else
+			std::clog<<" failed to obtain value (EOF?)";
+		std::clog<<std::endl;
+
+		std::clog<<"Peeking character at location : Line "<<inputFile_1.get_current_line()<<"   column: "<<inputFile_1.get_current_column()<<std::endl;
+        peeked_char = inputFile_1.peek();
+        if(peeked_char.has_value())
+			std::clog<<" character = "<<(char)peeked_char.value();
+		else
+			std::clog<<" failed to obtain value (EOF?)";
+		std::clog<<std::endl;
 
 
 
-    cout << "Testing utf-8 decoder" << endl;
 
-	for(test_sample_struct test:testSamples)
+
+		std::clog<<"closing file..";
+		inputFile_1.close();
+		std::clog<<"."<<std::endl;
+		std::clog<<std::boolalpha<<"Is opened : "<<inputFile_1.is_open()<<std::endl;
+		std::clog<<"Opened path:\""<<inputFile_1.get_path()<<"\""<<std::endl;
+        std::clog<<"Peeking character at location : Line "<<inputFile_1.get_current_line()<<"   column: "<<inputFile_1.get_current_column();
+
+	}
+	catch(std::exception & e)
 	{
-        std::cout<<"  "<<test.test_title<<" : ";
-        try
-        {
-        	TextFileInput_decoder_utf8<char32_t> testable(test.byte_sequence.front());
-        	test.byte_sequence.pop();
-        	while(!testable.is_complete())
-			{
-                if(test.byte_sequence.empty())
-				{
-					throw "expects more bytes than should";
-				}
-				testable.append(test.byte_sequence.front());
-				test.byte_sequence.pop();
-			}
-			if(!test.byte_sequence.empty())
-			{
-                throw "did not use all bytes";
-			}
-			if(test.expected_result != testable.get())
-			{
-                throw "expectation not met";
-			}
-			std::cout<<"passed";
-
-
-
-
-        }
-        catch(const char* msg)
-        {
-        	std::cout<<" Failed ("<<msg<<")";
-        }
-        catch(std::exception &e)
-		{
-			std::cout<<" Failed (exception)"<<std::endl<<"      "<<e.what();
-		}
-		catch(...)
-		{
-			std::cout<<" Failed (unknown exception)";
-		}
-		std::cout<<std::endl;
+        std::cerr<<"[Exception]"<<e.what()<<std::endl;
+	}
+	catch(...)
+	{
+        std::cerr<<"unexpected exception"<<std::endl;
 	}
 
 }
 
-
 int main()
 {
-
-
-	test_utf8_decoder();
+	test_tiFile();
 
 	return 0;
 }
