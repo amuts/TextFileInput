@@ -114,6 +114,8 @@ class tiFile
 		{
 			msp_path=nullptr;
 			m_eof_met=false;
+			m_current_line=invalid_line;
+			m_current_column=invalid_column;
 		}
 		/** create file object and  attempt to open file*/
 		tiFile(const char * path)
@@ -152,6 +154,8 @@ class tiFile
 			if(false==m_stream.is_open())
 			{
 				msp_path=nullptr;
+				m_current_line=invalid_line;
+				m_current_column=invalid_column;
 			}
 			else
 			{
@@ -170,19 +174,23 @@ class tiFile
 		{
 			m_stream.close();
 			msp_path=nullptr;
-			m_current_line=-1;
-			m_current_column=-1;
+			m_current_line=invalid_line;
+			m_current_column=invalid_column;
 			m_line_start_pos.clear();
 			m_line_length.clear();
 			m_eof_met=false;
 		}
 		/* ----------------------- positioning in file --------------------*/
-		/** returns line number of next character read*/
+		/** returns line number of next character read
+		 * \return line number of next get() action , or tiFile<CharType,DecoderType>::invalid_line if no file is opened
+		 */
 		int64_t get_current_line() const
 		{
 			return m_current_line;
 		}
-		/** returns column number of next character read*/
+		/** returns column number of next character read
+		 * \return column number of next get() action , or tiFile<CharType,DecoderType>::invalid_column if no file is opened
+		 */
 		int64_t get_current_column() const
 		{
             return m_current_column;
@@ -243,7 +251,7 @@ class tiFile
 		std::optional<CharType> get_raw()
 		{
 			/*test if file is open*/
-			if(false==is_open()) throw std::logic_error("Trying to get() in un-opened file");
+			if(false==is_open()) throw std::logic_error("Trying to get() when no file is opened");
 			/*test if end-of-file flag is already set, if so, nothing to read here*/
 			if(m_stream.eof())	return {};
             /*store current position , because we might read more than 1 bytes from file (due to encoding) - thus ifstream::peek() will not work */
@@ -460,6 +468,10 @@ class tiFile
 		constexpr static char32_t NEL = 0x0085;
 		constexpr static char32_t LS = 0x2028;
 		constexpr static char32_t PS = 0x2029;
+		constexpr static int64_t invalid_line=std::numeric_limits<int64_t>::min()/*line_index_base-1*/;
+		constexpr static int64_t invalid_column=std::numeric_limits<int64_t>::min()/*column_index_base-1*/;
+		static_assert(line_index_base>std::numeric_limits<int64_t>::min(),"linde index cannot start at minimum value of int64_t ");
+		static_assert(column_index_base>std::numeric_limits<int64_t>::min(),"column index cannot start at minimum value of int64_t ");
 
 
 };

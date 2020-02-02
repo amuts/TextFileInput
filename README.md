@@ -9,7 +9,7 @@ although a lot more powerful, but it does not keep trace of position in file exp
 ## When to use this class ?
 In cases where you intend to parse text file and report information about errors , for example reading configuration from file
 
-```
+```ini
 [Theme]
 Name= ĀžukalnaDubļi
 BackgroundColor=#794c13
@@ -42,6 +42,8 @@ often we are accustomed to LF or CRLF being used as line end characters , howeve
 
 - **TextFileInput_decoder_base** - provides base class for character decoders, thus in future allowing to parse different encodings , not only UTF-8. **Do not direclty use this class**
 - **TextFileInput_decoder_utf8** - provides decoding from UTF-8 to unicode codepoints
+- **tiFile** - provides read access to text file
+- **tiFileCharacter** - stores chatacter red from tiFile ,  and infrormation of it's location (path of file, line number, column number)
 
 ### Branches: 
 
@@ -50,3 +52,51 @@ often we are accustomed to LF or CRLF being used as line end characters , howeve
 **develop** - contains header files and CodeBlocks project for testing purposes
 
 **encodings** - contains development of encoders
+
+**tiFile** - contains development of tiFile.h
+
+------
+
+## tiFile class documentation
+
+tiFile is provided as templated class.
+
+```c++
+template <typename CharType,
+          template<typename> typename DecoderType,
+          int64_t line_index_base = 1,
+          int64_t column_index_base=line_index_base>
+          class tiFile
+          {
+               ...
+```
+
+Argument **CharType**  -  variable type that will be used to represent single character within file. For example char , if file is known to be ASCII file. If any character of file could not be represented with this type, exception from TextFileInput_decoder_*** will be thrown. char32_t can represent all characters
+
+Argument **DecoderType** - template name for decoder to be used while reading from text file.  For example  TextFileInput_decoder_utf8
+
+Argument **line_index_base** *(optional)* - 64bit signed integer containing number from which lines will be numbered. Default value =1 , must be greater than *std::numeric_limits<int64_t>::min()*
+
+Argument **column_index_base** *(optional)* - 64bit signed integer containing number from which characters within line will be numbered. Default value equals line_index_base. Must be greater than *std::numeric_limits<int64_t>::min()*
+
+*example to create input from ascii file*
+
+```c++
+#include <iostream>
+#include "TextFileInput_decoder_utf8.h"
+#include "tiFile.h"
+
+int main()
+{
+	tiFile<char,TextFileInput_decoder_utf8> testable("simple_ascii_file.txt") ;
+	if(false==testable.is_open())
+	{
+		std::cout<<"failed to open file";
+		return 2;
+	}
+	std::cout<<"file opened";
+	/*do something with your file here*/
+	return 0;
+}
+```
+
