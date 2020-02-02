@@ -3,13 +3,17 @@
 
 #include <cstdint>
 #include <string>
-
+#include <type_traits>
+//#include <concepts>
 /**
  * this class provides utility to create decoder between encoding within file and character type that stores unicode codepoint
  * direct use of this class will result in exception thrown , use decoders derived from it
  */
 
-template <typename CodepointCharT>
+template < class T >
+concept integral = std::is_integral_v<T>;
+
+template <integral CodepointCharT>
 class TextFileInput_decoder_base
 {
 	public:

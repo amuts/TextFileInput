@@ -10,7 +10,7 @@
  * direct use of this class will result in exception thrown , use decoders derived from it
  */
 
-template <typename CodepointCharT>
+template <integral CodepointCharT>
 class TextFileInput_decoder_utf8:public TextFileInput_decoder_base<CodepointCharT>
 {
 	protected:

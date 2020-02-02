@@ -19,6 +19,8 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-std=c++2a" />
+			<Add option="-fconcepts" />
 		</Compiler>
 		<Unit filename="../TextFileInput_decoder_base.h" />
 		<Unit filename="../TextFileInput_decoder_utf8.h" />
