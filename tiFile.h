@@ -8,6 +8,7 @@
 #include <optional>
 #include <stdexcept>
 #include <codecvt>
+#include <map>
 /* todo : concepts ! */
 
 
@@ -112,15 +113,18 @@ class tiFile
 		tiFile()
 		{
 			msp_path=nullptr;
+			m_eof_met=false;
 		}
 		/** create file object and  attempt to open file*/
 		tiFile(const char * path)
 		{
+			m_eof_met=false;
 			open(path);
     	}
 		/** create file object and  attempt to open file*/
 		tiFile(const std::string & path)
 		{
+			m_eof_met=false;
 			open(path);
 		}
 		/*--------------------- destructor ---------------------------------*/
@@ -149,6 +153,12 @@ class tiFile
 			{
 				msp_path=nullptr;
 			}
+			else
+			{
+				m_eof_met=false;
+				m_line_start_pos[line_index_base]=m_stream.tellg();
+			}
+
 		}
 		/** test if file is opened*/
 		bool is_open() const
@@ -162,6 +172,9 @@ class tiFile
 			msp_path=nullptr;
 			m_current_line=-1;
 			m_current_column=-1;
+			m_line_start_pos.clear();
+			m_line_length.clear();
+			m_eof_met=false;
 		}
 		/* ----------------------- positioning in file --------------------*/
 		/** returns line number of next character read*/
@@ -173,6 +186,40 @@ class tiFile
 		int64_t get_current_column() const
 		{
             return m_current_column;
+		}
+		/** go to line provided*/
+		void seek_to_line(int64_t lineNo)
+		{
+			// check if file is open
+			if(!is_open()) throw std::logic_error("cannot seek if file is not opened");
+			// check if line number is valid
+			if(lineNo<line_index_base) throw std::out_of_range("cannot seek to line with number less than starting index");
+			// check if we know where this line starts
+			if(m_line_start_pos.count(lineNo)>0)
+			{
+				m_stream.seekg(m_line_start_pos[lineNo]);
+				m_current_line=lineNo;
+				m_current_column=column_index_base;
+				return;
+			}
+			// check if we can know how many lines are within this file
+			if(m_eof_met)
+			{
+				throw std::out_of_range("file does not appear to have that much lines");
+			}
+			// seek to closest known position
+			auto closestKnown=m_line_start_pos.lower_bound (lineNo);
+            seek_to_line(closestKnown->first);
+            // read until we reach desired position or  end of file
+            while(!m_eof_met)
+			{
+				get_raw();
+				if(m_current_line == lineNo) return; // we should be there
+			}
+			throw std::out_of_range("file does not appear to have that much lines");
+
+
+
 		}
 		/* -------------------- reading operations ------------------------*/
 		/** Reads next character from file(including end-of-line characters) , returns in tiFileCharacter<T> form
@@ -230,8 +277,19 @@ class tiFile
 					}
 					char_dec.append(next_byte);
 				}
+            	/* test if this is last byte of file*/
+				bool last_byte_of_file=false;
+				m_stream.clear();
+				m_stream.peek();
+				if(m_stream.eof())
+				{
+					last_byte_of_file=true;
+					m_eof_met=true;
+				}
+				m_stream.clear();
+
             	/* advance location counters*/
-			    // TODO
+			    bool eol_detected=false;
 			    if(is_EOL(char_dec.get()))
 				{
 					if(CR==char_dec.get())
@@ -240,26 +298,32 @@ class tiFile
                         if(LF==next_char.value_or(CR))
 						{
 							/*we will break line after we encounter LF*/
-							m_current_column++;
 						}
 						else
 						{
-							m_current_line++;
-							m_current_column=column_index_base;
+							eol_detected=true;
 						}
-
 					}
 					else
 					{
-						m_current_line++;
-						m_current_column=column_index_base;
+						eol_detected=true;
+					}
+				}
+				if(eol_detected)
+				{
+					m_line_length[m_current_line]=m_current_column-column_index_base+1;
+					m_current_column=column_index_base;
+					m_current_line++;
+					if(!last_byte_of_file)
+					{
+						m_line_start_pos[m_current_line]=m_stream.tellg();
 					}
 				}
 				else
 				{
 					m_current_column++;
 				}
-			    /* return codepoint*/
+				/* return codepoint*/
 				return char_dec.get();
             }
             catch(...)
@@ -362,13 +426,32 @@ class tiFile
 
 		}
 
+		/** get number of lines in file
+		 * \warning this requires reading whole file before. if it hasn't already done that , it will be performed
+		 */
+		 int64_t total_lines()
+		 {
+		 	if(m_eof_met) return m_line_start_pos.rbegin()->first-line_index_base;
+		 	auto current_pos_f = m_stream.tellg();
+		 	auto curr_line = m_current_line;
+		 	auto curr_col=m_current_column;
+		 	while(!m_eof_met) get_raw();
+		 	m_stream.seekg(current_pos_f);
+		 	m_current_line=curr_line;
+		 	m_current_column=curr_line;
+			if(m_eof_met) return m_line_start_pos.rbegin()->first-line_index_base;
+		 	else return -1;
 
+		 }
 
 	private:
 		std::shared_ptr<std::string> msp_path;///< stores path of currently opened file (shared pointer , because red characters can also point to it)
 		std::ifstream m_stream;///< stores file stream
 		int64_t m_current_line;///< stores current line number(where next character is red) ; -1 if file is not opened
 		int64_t m_current_column;///< stores current column number(where next character is red) ; -1 if file is not opened
+		std::map<int64_t ,std::streampos> m_line_start_pos; ///< stores start positions of lines
+		std::map<int64_t, int64_t> m_line_length;///< stores how many characters are within line
+		bool m_eof_met;///< true if end of file has been reached at least once
 	public:
 		constexpr static char32_t LF = 0x000A;
 		constexpr static char32_t VT = 0x000B;
